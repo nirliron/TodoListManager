@@ -3,12 +3,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:padding="30dip"
-    android:orientation="vertical">
-    <EditText android:id="@+id/edtNewItem"        
-        android:layout_width="match_parent"        
-        android:layout_height="wrap_content"        
-        android:hint="@string/txtTask" 
-        />         
+    android:orientation="vertical">          
    <ListView android:id="@+id/lstToDoItems"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"        

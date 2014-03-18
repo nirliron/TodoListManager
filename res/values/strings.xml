@@ -7,5 +7,10 @@
     <string name="txtTask">Enter Task</string>
     <string name="addTxt">Add</string>
     <string name="delete_string">Delete Item</string>
+    <string name="call_string"></string>
+    <string name="btnOKtxt">OK</string>
+    <string name="btnCanceltxt">Cancel</string>
+    <string name="title_activity_add_new_todo_item">Add New Item</string>
+    <string name="dueDateDefault"> No due date</string>
 
 </resources>
