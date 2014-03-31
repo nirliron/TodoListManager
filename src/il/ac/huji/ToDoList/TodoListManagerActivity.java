@@ -2,10 +2,14 @@ package il.ac.huji.ToDoList;
 
 import java.util.ArrayList;
 import java.util.Date;
-
+import com.parse.Parse;
+import com.parse.ParseAnalytics;
+import com.parse.ParseObject;
+import com.parse.ParseUser;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
@@ -14,29 +18,63 @@ import android.widget.ArrayAdapter;
 import android.view.ContextMenu;
 import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
 
 public class TodoListManagerActivity extends Activity {
-
-	ArrayList<ToDoListItem> listItems = new ArrayList<ToDoListItem>();
-	ToDoListAdapter adapter;
-	ListView toDoList;
+	private ToDoCursurAdapter customAdapter;
+    private ToDoDBHelper databaseHelper;    
+	private ArrayList<ToDoListItem> listItems = new ArrayList<ToDoListItem>();
+	private ToDoListAdapter adapter;
+	private ListView toDoList;
+	private ToDoListItem current;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		Parse.initialize(this, "XLM6FD7GxmytC4jqer8FbYhvoxHygUx2nCiRV6t3", "Mx46AMh0HUEuvGsabmroNxkjVYkZVw3raQRs5TCD");
+		ParseUser.enableAutomaticUser();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		toDoList = (ListView) findViewById(R.id.lstToDoItems);
+		databaseHelper = new ToDoDBHelper(this);
+		toDoList = (ListView) findViewById(R.id.lstToDoItems);		
+		toDoList.setOnItemLongClickListener(new OnItemLongClickListener() {			
+			@Override
+			public boolean onItemLongClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub							
+				String title = ((TextView) view.findViewById(R.id.txtTodoTitle)).getText().toString();
+				String dueString = ((TextView) view.findViewById(R.id.txtTodoDueDate)).getText().toString();
+				Date due = extractDate(dueString);
+				String _id = ((TextView) view.findViewById(R.id._id)).getText().toString();
+				current = new ToDoListItem(title, due,_id);
+				return false;
+			}
+		});
 		registerForContextMenu(toDoList);
-		adapter = new ToDoListAdapter(listItems, this);
-		toDoList.setAdapter(adapter);
+//		adapter = new ToDoListAdapter(listItems, this);
+//		toDoList.setAdapter(adapter);
+		new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                customAdapter = new ToDoCursurAdapter(TodoListManagerActivity.this, databaseHelper.getAllData());
+                toDoList.setAdapter(customAdapter);
+            }
+        });
 	}
-	
+	private Date extractDate(String dateStr){
+		String[] dateArr = dateStr.split("/");
+		Date date = new Date();
+		date.setDate(Integer.parseInt(dateArr[0]));
+		date.setMonth(Integer.parseInt(dateArr[1]));
+		date.setYear(Integer.parseInt(dateArr[2]));
+		return date;
+	}
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		// TODO Auto-generated method stub
@@ -48,40 +86,16 @@ public class TodoListManagerActivity extends Activity {
 		case 555:
 			String title = data.getStringExtra("title");
 			Date due = (Date)data.getExtras().get("dueDate");
-			addItems(title, due);
+			//listItems.add(new ToDoListItem(title, due));
+			databaseHelper.insertData(title,due);			 
+            customAdapter.changeCursor(databaseHelper.getAllData());
 			break;
 
 		default:
 			break;
 		}
 		
-	}
-	/*
-	@Override
-	protected void onResume() {
-		// TODO Auto-generated method stub
-		Intent intent = getIntent();
-		try{
-			String title = intent.getStringExtra("title");
-			System.out.println(title);
-			addItems(title);
-		}catch (Exception e) {
-			// TODO: handle exception
-			super.onResume();
-		}
-	}
-*/
-	public void addItems(String title,Date due) {
-		//final EditText edtTask = (EditText) findViewById(R.id.edtNewItem);
-		//String task = edtTask.getText().toString();
-		if (!title.equals("")) {
-			//listItems.add(task);
-			ToDoListItem item = new ToDoListItem(title, due);
-			listItems.add(item);
-		}
-		//edtTask.setText("");
-		adapter.notifyDataSetChanged();
-	}
+	}	
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -95,8 +109,7 @@ public class TodoListManagerActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle item selection
 		switch (item.getItemId()) {
-		case R.id.menuItemAdd:
-			//addItems();
+		case R.id.menuItemAdd:		
 			Intent intent=new Intent(this,AddNewTodoItem.class);
 			startActivityForResult(intent, 555);
 			return true;
@@ -112,8 +125,7 @@ public class TodoListManagerActivity extends Activity {
 		// TODO Auto-generated method stub
 		super.onCreateContextMenu(menu, v, menuInfo);
 		MenuInflater m = getMenuInflater();
-		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-		ToDoListItem current= listItems.get(info.position);
+		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;					
 		String title = current.getTitle();
 		menu.setHeaderTitle(title);
 		m.inflate(R.menu.delete_menue, menu);
@@ -132,9 +144,13 @@ public class TodoListManagerActivity extends Activity {
 				.getMenuInfo();
 		int position = (int) info.id;
 		switch (item.getItemId()) {
-		case R.id.menuItemDelete:
-			listItems.remove(position);
-			this.adapter.notifyDataSetChanged();
+		case R.id.menuItemDelete:			
+			databaseHelper.deleteData(current.getId() );
+			customAdapter.changeCursor(databaseHelper.getAllData());
+			//customAdapter.notifyDataSetChanged();
+//			listItems.remove(position);
+//			this.adapter.notifyDataSetChanged();
+			
 			return true;
 		case R.id.menuItemCall:					
 			String tel = listItems.get(position).getTitle().replace("Call ","");
