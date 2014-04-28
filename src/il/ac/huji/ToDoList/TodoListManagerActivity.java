@@ -6,13 +6,15 @@ import com.parse.Parse;
 import com.parse.ParseAnalytics;
 import com.parse.ParseObject;
 import com.parse.ParseUser;
-
+import android.os.AsyncTask;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
 import android.view.Menu;
 import android.widget.ArrayAdapter;
 import android.view.ContextMenu;
@@ -36,9 +38,7 @@ public class TodoListManagerActivity extends Activity {
 	private ToDoListItem current;
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		Parse.initialize(this, "XLM6FD7GxmytC4jqer8FbYhvoxHygUx2nCiRV6t3", "Mx46AMh0HUEuvGsabmroNxkjVYkZVw3raQRs5TCD");
-		ParseUser.enableAutomaticUser();
+	protected void onCreate(Bundle savedInstanceState) {		
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		databaseHelper = new ToDoDBHelper(this);
@@ -56,16 +56,12 @@ public class TodoListManagerActivity extends Activity {
 				return false;
 			}
 		});
+		LoadDB loader = new LoadDB();
+		loader.execute();
 		registerForContextMenu(toDoList);
 //		adapter = new ToDoListAdapter(listItems, this);
 //		toDoList.setAdapter(adapter);
-		new Handler().post(new Runnable() {
-            @Override
-            public void run() {
-                customAdapter = new ToDoCursurAdapter(TodoListManagerActivity.this, databaseHelper.getAllData());
-                toDoList.setAdapter(customAdapter);
-            }
-        });
+		
 	}
 	private Date extractDate(String dateStr){
 		String[] dateArr = dateStr.split("/");
@@ -87,8 +83,13 @@ public class TodoListManagerActivity extends Activity {
 			String title = data.getStringExtra("title");
 			Date due = (Date)data.getExtras().get("dueDate");
 			//listItems.add(new ToDoListItem(title, due));
-			databaseHelper.insertData(title,due);			 
-            customAdapter.changeCursor(databaseHelper.getAllData());
+			ContentValues vals = new ContentValues();
+			vals.put("title", title);
+			vals.put("due", due.toString());
+			UpdateDB updater = new UpdateDB();
+			updater.execute(new ContentValues[]{vals});
+			//databaseHelper.insertData(title,due);			 
+            //customAdapter.changeCursor(databaseHelper.getAllData());
 			break;
 
 		default:
@@ -144,9 +145,11 @@ public class TodoListManagerActivity extends Activity {
 				.getMenuInfo();
 		int position = (int) info.id;
 		switch (item.getItemId()) {
-		case R.id.menuItemDelete:			
-			databaseHelper.deleteData(current.getId() );
-			customAdapter.changeCursor(databaseHelper.getAllData());
+		case R.id.menuItemDelete:
+			DeleteTask del = new DeleteTask();
+			del.execute();
+			//databaseHelper.deleteData(current.getId() );
+			//customAdapter.changeCursor(databaseHelper.getAllData());
 			//customAdapter.notifyDataSetChanged();
 //			listItems.remove(position);
 //			this.adapter.notifyDataSetChanged();
@@ -160,6 +163,52 @@ public class TodoListManagerActivity extends Activity {
 
 		}
 		return super.onContextItemSelected(item);
+	}
+		
+
+	private class LoadDB extends AsyncTask<Void, Void, Cursor> {
+
+		@Override
+		protected Cursor doInBackground(Void... arg0) {
+			// TODO Auto-generated method stub
+			Cursor ret = databaseHelper.getAllData();
+			return ret;
+		}
+		protected void onPostExecute(Cursor c) {
+			customAdapter = new ToDoCursurAdapter(getApplicationContext(), c);
+			toDoList.setAdapter(customAdapter);
+	    }
+	}
+	
+	private class UpdateDB extends AsyncTask<ContentValues, Void, Void>{
+
+		@Override
+		protected Void doInBackground(ContentValues... params) {
+			// TODO Auto-generated method stub
+			String title = params[0].get("title").toString();
+			Date due = new Date(params[0].get("due").toString());
+			databaseHelper.insertData(title,due);
+			return null;
+		}
+		@Override
+	    protected void onPostExecute(Void v) {			
+			customAdapter.changeCursor(databaseHelper.getAllData());			
+	    }
+	}
+	private class DeleteTask extends AsyncTask<Void, Void, Void>{
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			// TODO Auto-generated method stub
+			databaseHelper.deleteData(current.getId() );
+			return null;
+		}
+		
+		@Override
+	    protected void onPostExecute(Void v) {			
+			customAdapter.changeCursor(databaseHelper.getAllData());			
+	    }
+		
 	}
 
 }

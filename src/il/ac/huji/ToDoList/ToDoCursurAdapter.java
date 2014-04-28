@@ -37,18 +37,7 @@ public class ToDoCursurAdapter extends CursorAdapter {
 		Date due = new Date(cursor.getLong(cursor.getColumnIndex(cursor.getColumnName(2))));
 		TextView txtId = (TextView) view.findViewById(R.id._id);
 		String id = cursor.getString(cursor.getColumnIndex(cursor.getColumnName(0)));
-		txtId.setText(id);		
-		int iid =  Integer.parseInt(id);
-		if(!currDate.equals(due)&&!currTitle.equalsIgnoreCase(title)){
-			currId = iid;
-			currDate = due;
-			currTitle = title;
-			ParseObject curr = new ParseObject("todo");
-			curr.put("title", title);
-			curr.put("due", due);			
-			curr.put("id",iid);
-			curr.saveInBackground();
-		}
+		txtId.setText(id);						
 		if(passedDueDate(due)){
         	txtTitle.setTextColor(Color.RED);
         	txtDate.setTextColor(Color.RED);

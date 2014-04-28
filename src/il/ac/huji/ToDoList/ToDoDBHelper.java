@@ -71,28 +71,9 @@ public class ToDoDBHelper {
 //		curr.saveInBackground();
     }
 	public void deleteData(String _id){
-//		String deleteSQL = "DELETE FROM "+TABLE_NAME+" WHERE "+ITEM_TITLE+"="+title;
-//		db.rawQuery(deleteSQL, null);
 		String[] args = new String[1];
 		args[0] = _id;		
-		db.delete(TABLE_NAME, ITEM_ID+"=?", args);	
-		int iid = Integer.parseInt(_id);
-		query.whereEqualTo("id", iid);			
-		query.findInBackground(new FindCallback<ParseObject>() {
-			@Override
-			public void done(List<ParseObject> objects, ParseException e) {
-				// TODO Auto-generated method stub
-				for(ParseObject del:objects){
-					
-					try {
-						del.delete();
-					} catch (ParseException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
-			}
-		});
+		db.delete(TABLE_NAME, ITEM_ID+"=?", args);			
 	}
 	public Cursor getAllData () {		 
         String buildSQL = "SELECT * FROM " + TABLE_NAME;          
